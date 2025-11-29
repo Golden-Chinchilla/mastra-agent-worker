@@ -1,30 +1,33 @@
-import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
-import 'dotenv/config';
-
-// Workers 的网络是跑在 Cloudflare 边缘，部署时不需要本地 HTTP 代理。
-// import { setGlobalDispatcher, ProxyAgent } from 'undici';
-// setGlobalDispatcher(new ProxyAgent('http://127.0.0.1:7890'));
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+import "dotenv/config";
 
 const etherscanApiKey = process.env.ETHERSCAN_API_KEY;
-const gasTrackerUrl = `https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${etherscanApiKey}`;
+
+// 使用 V2 路径，并加上 chainid=1（Ethereum Mainnet）
+const ETH_MAINNET_CHAIN_ID = 1;
+const gasTrackerUrl = `https://api.etherscan.io/v2/api?chainid=${ETH_MAINNET_CHAIN_ID}&module=gastracker&action=gasoracle&apikey=${etherscanApiKey}`;
 
 export const gasTool = createTool({
-  id: 'getGasPrice',
-  description: 'Get current gas price for Ethereum LastBlock',
-  inputSchema: z.object({}),
-  outputSchema: z.object({
-    status: z.literal("1"),
-    message: z.string(),
-    result: z.object({
-      LastBlock: z.string(),
-      SafeGasPrice: z.string(),
-      ProposeGasPrice: z.string(),
-      FastGasPrice: z.string(),
-      suggestBaseFee: z.string(),
-      gasUsedRatio: z.string(),
-    }).strict(),
-  }).strict(),
+  id: "getGasPrice",
+  description: "Get current gas price for Ethereum LastBlock",
+  inputSchema: z.object({}), // 仍然不接收任何输入
+  outputSchema: z
+    .object({
+      status: z.literal("1"),
+      message: z.string(),
+      result: z
+        .object({
+          LastBlock: z.string(),
+          SafeGasPrice: z.string(),
+          ProposeGasPrice: z.string(),
+          FastGasPrice: z.string(),
+          suggestBaseFee: z.string(),
+          gasUsedRatio: z.string(),
+        })
+        .strict(),
+    })
+    .strict(),
 
   execute: async (_ctx: any) => {
     return await getGasPrice();
@@ -33,7 +36,7 @@ export const gasTool = createTool({
 
 const getGasPrice = async () => {
   return fetch(gasTrackerUrl, {
-    method: 'GET',
+    method: "GET",
     // headers: { 'Accept': 'application/json' }, // 可选
   })
     .then(async (res) => {
@@ -43,6 +46,8 @@ const getGasPrice = async () => {
       return await res.json();
     })
     .then((data) => {
+      // V2 的返回结构与示例中保持一致：
+      // { status: "1", message: "OK", result: { LastBlock, SafeGasPrice, ... } }
       return {
         status: "1" as const,
         message: String(data.message),
@@ -53,11 +58,11 @@ const getGasPrice = async () => {
           FastGasPrice: String(data.result.FastGasPrice),
           suggestBaseFee: String(data.result.suggestBaseFee),
           gasUsedRatio: String(data.result.gasUsedRatio),
-        }
+        },
       };
     })
     .catch((error) => {
-      console.error('Error fetching gas price:', error);
-      throw new Error('Failed to fetch gas price');
+      console.error("Error fetching gas price:", error);
+      throw new Error("Failed to fetch gas price");
     });
 };
