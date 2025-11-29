@@ -5,6 +5,7 @@ import { Agent } from '@mastra/core/agent';
 import { gasTool } from '../tools/gasTool.ts';
 
 export const cryptoAgent = new Agent({
+  id: 'cryptoAgent',
   name: 'Gas Agent',
   instructions: `
       你是一个专注于加密货币研究的Agent。
